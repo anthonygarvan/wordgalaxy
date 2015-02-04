@@ -1,4 +1,5 @@
 module.exports.main = function () {
+ 
   var graph = require('ngraph.generators').grid(40, 40),
       layout = createLayout(graph);
 
