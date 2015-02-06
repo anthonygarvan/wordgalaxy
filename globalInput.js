@@ -1,5 +1,6 @@
 module.exports = function (graphics) {
   var addWheelListener = require('./lib/addWheelListener');
+  var geohash = require('ngeohash');
   var graphGraphics = graphics.graphGraphics;
 
   addWheelListener(graphics.domContainer, function (e) {
@@ -39,7 +40,10 @@ module.exports = function (graphics) {
   function addDragNDrop() {
     var stage = graphics.stage;
     stage.setInteractive(true);
-
+    var text = new PIXI.Text("Geohash here!", {font:"50px Arial", fill:"white"});
+    text.position.x = 50;
+    text.position.y = 50;
+    stage.addChild(text);
     var isDragging = false,
         prevX, prevY;
 
@@ -50,6 +54,10 @@ module.exports = function (graphics) {
     };
 
     stage.mousemove = function (moveData) {
+      var pos = moveData.global;
+      var graphPos = getGraphCoordinates(pos.x, pos.y);
+      var hash = geohash.encode(graphPos.x/1000, graphPos.y/1000);
+      text.setText(hash);
       if (!isDragging) {
         return;
       }

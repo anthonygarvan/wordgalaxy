@@ -1,6 +1,7 @@
 !function(e){if("object"==typeof exports)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.ngraph=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = function (graphics) {
   var addWheelListener = require('./lib/addWheelListener');
+  var geohash = require('ngeohash');
   var graphGraphics = graphics.graphGraphics;
 
   addWheelListener(graphics.domContainer, function (e) {
@@ -40,7 +41,10 @@ module.exports = function (graphics) {
   function addDragNDrop() {
     var stage = graphics.stage;
     stage.setInteractive(true);
-
+    var text = new PIXI.Text("Geohash here!", {font:"50px Arial", fill:"white"});
+    text.position.x = 50;
+    text.position.y = 50;
+    stage.addChild(text);
     var isDragging = false,
         prevX, prevY;
 
@@ -51,6 +55,10 @@ module.exports = function (graphics) {
     };
 
     stage.mousemove = function (moveData) {
+      var pos = moveData.global;
+      var graphPos = getGraphCoordinates(pos.x, pos.y);
+      var hash = geohash.encode(graphPos.x/1000, graphPos.y/1000);
+      text.setText(hash);
       if (!isDragging) {
         return;
       }
@@ -69,7 +77,7 @@ module.exports = function (graphics) {
   }
 }
 
-},{"./lib/addWheelListener":3}],2:[function(require,module,exports){
+},{"./lib/addWheelListener":3,"ngeohash":5}],2:[function(require,module,exports){
 module.exports.main = function () {
  
   var graph = require('ngraph.generators').grid(40, 40),
@@ -104,7 +112,7 @@ function createLayout(graph) {
         }));
 }
 
-},{"./globalInput":1,"./pixiGraphics":23,"ngraph.forcelayout":5,"ngraph.generators":8,"ngraph.physics.simulator":11}],3:[function(require,module,exports){
+},{"./globalInput":1,"./pixiGraphics":24,"ngraph.forcelayout":6,"ngraph.generators":9,"ngraph.physics.simulator":12}],3:[function(require,module,exports){
 /**
  * This module unifies handling of mouse whee event accross different browsers
  *
@@ -9380,6 +9388,517 @@ return jQuery;
 }));
 
 },{}],5:[function(require,module,exports){
+/**
+ * Copyright (c) 2011, Sun Ning.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use, copy,
+ * modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+var BASE32_CODES = "0123456789bcdefghjkmnpqrstuvwxyz";
+var BASE32_CODES_DICT = {};
+for (var i = 0; i < BASE32_CODES.length; i++) {
+  BASE32_CODES_DICT[BASE32_CODES.charAt(i)] = i;
+}
+
+var ENCODE_AUTO = 'auto';
+/**
+ * Significant Figure Hash Length
+ *
+ * This is a quick and dirty lookup to figure out how long our hash
+ * should be in order to guarantee a certain amount of trailing
+ * significant figures. This was calculated by determining the error:
+ * 45/2^(n-1) where n is the number of bits for a latitude or
+ * longitude. Key is # of desired sig figs, value is minimum length of
+ * the geohash.
+ * @type Array
+ */
+//     Desired sig figs:  0  1  2  3  4   5   6   7   8   9  10
+var SIGFIG_HASH_LENGTH = [0, 5, 7, 8, 11, 12, 13, 15, 16, 17, 18];
+/**
+ * Encode
+ *
+ * Create a Geohash out of a latitude and longitude that is
+ * `numberOfChars` long.
+ *
+ * @param {Number|String} latitude
+ * @param {Number|String} longitude
+ * @param {Number} numberOfChars
+ * @returns {String}
+ */
+var encode = function (latitude, longitude, numberOfChars) {
+  if (numberOfChars === ENCODE_AUTO) {
+    if (typeof(latitude) === 'number' || typeof(longitude) === 'number') {
+      throw new Error('string notation required for auto precision.');
+    }
+    var decSigFigsLat = latitude.split('.')[1].length;
+    var decSigFigsLong = longitude.split('.')[1].length;
+    var numberOfSigFigs = Math.max(decSigFigsLat, decSigFigsLong);
+    numberOfChars = SIGFIG_HASH_LENGTH[numberOfSigFigs];
+  } else if (numberOfChars === undefined) {
+    numberOfChars = 9;
+  }
+
+  var chars = [],
+  bits = 0,
+  bitsTotal = 0,
+  hash_value = 0,
+  maxLat = 90,
+  minLat = -90,
+  maxLon = 180,
+  minLon = -180,
+  mid;
+  while (chars.length < numberOfChars) {
+    if (bitsTotal % 2 === 0) {
+      mid = (maxLon + minLon) / 2;
+      if (longitude > mid) {
+        hash_value = (hash_value << 1) + 1;
+        minLon = mid;
+      } else {
+        hash_value = (hash_value << 1) + 0;
+        maxLon = mid;
+      }
+    } else {
+      mid = (maxLat + minLat) / 2;
+      if (latitude > mid) {
+        hash_value = (hash_value << 1) + 1;
+        minLat = mid;
+      } else {
+        hash_value = (hash_value << 1) + 0;
+        maxLat = mid;
+      }
+    }
+
+    bits++;
+    bitsTotal++;
+    if (bits === 5) {
+      var code = BASE32_CODES[hash_value];
+      chars.push(code);
+      bits = 0;
+      hash_value = 0;
+    }
+  }
+  return chars.join('');
+};
+
+/**
+ * Encode Integer
+ *
+ * Create a Geohash out of a latitude and longitude that is of 'bitDepth'.
+ *
+ * @param {Number} latitude
+ * @param {Number} longitude
+ * @param {Number} bitDepth
+ * @returns {Number}
+ */
+var encode_int = function (latitude, longitude, bitDepth) {
+
+  bitDepth = bitDepth || 52;
+
+  var bitsTotal = 0,
+  maxLat = 90,
+  minLat = -90,
+  maxLon = 180,
+  minLon = -180,
+  mid,
+  combinedBits = 0;
+
+  while (bitsTotal < bitDepth) {
+    combinedBits *= 2;
+    if (bitsTotal % 2 === 0) {
+      mid = (maxLon + minLon) / 2;
+      if (longitude > mid) {
+        combinedBits += 1;
+        minLon = mid;
+      } else {
+        maxLon = mid;
+      }
+    } else {
+      mid = (maxLat + minLat) / 2;
+      if (latitude > mid) {
+        combinedBits += 1;
+        minLat = mid;
+      } else {
+        maxLat = mid;
+      }
+    }
+    bitsTotal++;
+  }
+  return combinedBits;
+};
+
+/**
+ * Decode Bounding Box
+ *
+ * Decode hashString into a bound box matches it. Data returned in a four-element array: [minlat, minlon, maxlat, maxlon]
+ * @param {String} hash_string
+ * @returns {Array}
+ */
+var decode_bbox = function (hash_string) {
+  var isLon = true,
+  maxLat = 90,
+  minLat = -90,
+  maxLon = 180,
+  minLon = -180,
+  mid;
+
+  var hashValue = 0;
+  for (var i = 0, l = hash_string.length; i < l; i++) {
+    var code = hash_string[i].toLowerCase();
+    hashValue = BASE32_CODES_DICT[code];
+
+    for (var bits = 4; bits >= 0; bits--) {
+      var bit = (hashValue >> bits) & 1;
+      if (isLon) {
+        mid = (maxLon + minLon) / 2;
+        if (bit === 1) {
+          minLon = mid;
+        } else {
+          maxLon = mid;
+        }
+      } else {
+        mid = (maxLat + minLat) / 2;
+        if (bit === 1) {
+          minLat = mid;
+        } else {
+          maxLat = mid;
+        }
+      }
+      isLon = !isLon;
+    }
+  }
+  return [minLat, minLon, maxLat, maxLon];
+};
+
+/**
+ * Decode Bounding Box Integer
+ *
+ * Decode hash number into a bound box matches it. Data returned in a four-element array: [minlat, minlon, maxlat, maxlon]
+ * @param {Number} hashInt
+ * @param {Number} bitDepth
+ * @returns {Array}
+ */
+var decode_bbox_int = function (hashInt, bitDepth) {
+
+  bitDepth = bitDepth || 52;
+
+  var maxLat = 90,
+  minLat = -90,
+  maxLon = 180,
+  minLon = -180;
+
+  var latBit = 0, lonBit = 0;
+  var step = bitDepth / 2;
+
+  for (var i = 0; i < step; i++) {
+
+    lonBit = get_bit(hashInt, ((step - i) * 2) - 1);
+    latBit = get_bit(hashInt, ((step - i) * 2) - 2);
+
+    if (latBit === 0) {
+      maxLat = (maxLat + minLat) / 2;
+    }
+    else {
+      minLat = (maxLat + minLat) / 2;
+    }
+
+    if (lonBit === 0) {
+      maxLon = (maxLon + minLon) / 2;
+    }
+    else {
+      minLon = (maxLon + minLon) / 2;
+    }
+  }
+  return [minLat, minLon, maxLat, maxLon];
+};
+
+function get_bit(bits, position) {
+  return (bits / Math.pow(2, position)) & 0x01;
+}
+
+/**
+ * Decode
+ *
+ * Decode a hash string into pair of latitude and longitude. A javascript object is returned with keys `latitude`,
+ * `longitude` and `error`.
+ * @param {String} hashString
+ * @returns {Object}
+ */
+var decode = function (hashString) {
+  var bbox = decode_bbox(hashString);
+  var lat = (bbox[0] + bbox[2]) / 2;
+  var lon = (bbox[1] + bbox[3]) / 2;
+  var latErr = bbox[2] - lat;
+  var lonErr = bbox[3] - lon;
+  return {latitude: lat, longitude: lon,
+          error: {latitude: latErr, longitude: lonErr}};
+};
+
+/**
+ * Decode Integer
+ *
+ * Decode a hash number into pair of latitude and longitude. A javascript object is returned with keys `latitude`,
+ * `longitude` and `error`.
+ * @param {Number} hash_int
+ * @param {Number} bitDepth
+ * @returns {Object}
+ */
+var decode_int = function (hash_int, bitDepth) {
+  var bbox = decode_bbox_int(hash_int, bitDepth);
+  var lat = (bbox[0] + bbox[2]) / 2;
+  var lon = (bbox[1] + bbox[3]) / 2;
+  var latErr = bbox[2] - lat;
+  var lonErr = bbox[3] - lon;
+  return {latitude: lat, longitude: lon,
+          error: {latitude: latErr, longitude: lonErr}};
+};
+
+/**
+ * Neighbor
+ *
+ * Find neighbor of a geohash string in certain direction. Direction is a two-element array, i.e. [1,0] means north, [-1,-1] means southwest.
+ * direction [lat, lon], i.e.
+ * [1,0] - north
+ * [1,1] - northeast
+ * ...
+ * @param {String} hashString
+ * @param {Array} Direction as a 2D normalized vector.
+ * @returns {String}
+ */
+var neighbor = function (hashString, direction) {
+  var lonLat = decode(hashString);
+  var neighborLat = lonLat.latitude
+    + direction[0] * lonLat.error.latitude * 2;
+  var neighborLon = lonLat.longitude
+    + direction[1] * lonLat.error.longitude * 2;
+  return encode(neighborLat, neighborLon, hashString.length);
+};
+
+/**
+ * Neighbor Integer
+ *
+ * Find neighbor of a geohash integer in certain direction. Direction is a two-element array, i.e. [1,0] means north, [-1,-1] means southwest.
+ * direction [lat, lon], i.e.
+ * [1,0] - north
+ * [1,1] - northeast
+ * ...
+ * @param {String} hash_string
+ * @returns {Array}
+*/
+var neighbor_int = function(hash_int, direction, bitDepth) {
+    bitDepth = bitDepth || 52;
+    var lonlat = decode_int(hash_int, bitDepth);
+    var neighbor_lat = lonlat.latitude + direction[0] * lonlat.error.latitude * 2;
+    var neighbor_lon = lonlat.longitude + direction[1] * lonlat.error.longitude * 2;
+    return encode_int(neighbor_lat, neighbor_lon, bitDepth);
+};
+
+/**
+ * Neighbors
+ *
+ * Returns all neighbors' hashstrings clockwise from north around to northwest
+ * 7 0 1
+ * 6 x 2
+ * 5 4 3
+ * @param {String} hash_string
+ * @returns {encoded neighborHashList|Array}
+ */
+var neighbors = function(hash_string){
+
+    var hashstringLength = hash_string.length;
+
+    var lonlat = decode(hash_string);
+    var lat = lonlat.latitude;
+    var lon = lonlat.longitude;
+    var latErr = lonlat.error.latitude * 2;
+    var lonErr = lonlat.error.longitude * 2;
+
+    var neighbor_lat,
+        neighbor_lon;
+
+    var neighborHashList = [
+                            encodeNeighbor(1,0),
+                            encodeNeighbor(1,1),
+                            encodeNeighbor(0,1),
+                            encodeNeighbor(-1,1),
+                            encodeNeighbor(-1,0),
+                            encodeNeighbor(-1,-1),
+                            encodeNeighbor(0,-1),
+                            encodeNeighbor(1,-1)
+                            ];
+
+    function encodeNeighbor(neighborLatDir, neighborLonDir){
+        neighbor_lat = lat + neighborLatDir * latErr;
+        neighbor_lon = lon + neighborLonDir * lonErr;
+        return encode(neighbor_lat, neighbor_lon, hashstringLength);
+    }
+
+    return neighborHashList;
+};
+
+/**
+ * Neighbors Integer
+ *
+ * Returns all neighbors' hash integers clockwise from north around to northwest
+ * 7 0 1
+ * 6 x 2
+ * 5 4 3
+ * @param {Number} hash_int
+ * @param {Number} bitDepth
+ * @returns {encode_int'd neighborHashIntList|Array}
+ */
+var neighbors_int = function(hash_int, bitDepth){
+
+    bitDepth = bitDepth || 52;
+
+    var lonlat = decode_int(hash_int, bitDepth);
+    var lat = lonlat.latitude;
+    var lon = lonlat.longitude;
+    var latErr = lonlat.error.latitude * 2;
+    var lonErr = lonlat.error.longitude * 2;
+
+    var neighbor_lat,
+        neighbor_lon;
+
+    var neighborHashIntList = [
+                            encodeNeighbor_int(1,0),
+                            encodeNeighbor_int(1,1),
+                            encodeNeighbor_int(0,1),
+                            encodeNeighbor_int(-1,1),
+                            encodeNeighbor_int(-1,0),
+                            encodeNeighbor_int(-1,-1),
+                            encodeNeighbor_int(0,-1),
+                            encodeNeighbor_int(1,-1)
+                            ];
+
+    function encodeNeighbor_int(neighborLatDir, neighborLonDir){
+        neighbor_lat = lat + neighborLatDir * latErr;
+        neighbor_lon = lon + neighborLonDir * lonErr;
+        return encode_int(neighbor_lat, neighbor_lon, bitDepth);
+    }
+
+    return neighborHashIntList;
+};
+
+
+/**
+ * Bounding Boxes
+ *
+ * Return all the hashString between minLat, minLon, maxLat, maxLon in numberOfChars
+ * @param {Number} minLat
+ * @param {Number} minLon
+ * @param {Number} maxLat
+ * @param {Number} maxLon
+ * @param {Number} numberOfChars
+ * @returns {bboxes.hashList|Array}
+ */
+var bboxes = function (minLat, minLon, maxLat, maxLon, numberOfChars) {
+  numberOfChars = numberOfChars || 9;
+
+  var hashSouthWest = encode(minLat, minLon, numberOfChars);
+  var hashNorthEast = encode(maxLat, maxLon, numberOfChars);
+
+  var latLon = decode(hashSouthWest);
+
+  var perLat = latLon.error.latitude * 2;
+  var perLon = latLon.error.longitude * 2;
+
+  var boxSouthWest = decode_bbox(hashSouthWest);
+  var boxNorthEast = decode_bbox(hashNorthEast);
+
+  var latStep = Math.round((boxNorthEast[0] - boxSouthWest[0]) / perLat);
+  var lonStep = Math.round((boxNorthEast[1] - boxSouthWest[1]) / perLon);
+
+  var hashList = [];
+
+  for (var lat = 0; lat <= latStep; lat++) {
+    for (var lon = 0; lon <= lonStep; lon++) {
+      hashList.push(neighbor(hashSouthWest, [lat, lon]));
+    }
+  }
+
+  return hashList;
+};
+
+/**
+ * Bounding Boxes Integer
+ *
+ * Return all the hash integers between minLat, minLon, maxLat, maxLon in bitDepth
+ * @param {Number} minLat
+ * @param {Number} minLon
+ * @param {Number} maxLat
+ * @param {Number} maxLon
+ * @param {Number} bitDepth
+ * @returns {bboxes_int.hashList|Array}
+ */
+var bboxes_int = function(minLat, minLon, maxLat, maxLon, bitDepth){
+    bitDepth = bitDepth || 52;
+
+    var hashSouthWest = encode_int(minLat, minLon, bitDepth);
+    var hashNorthEast = encode_int(maxLat, maxLon, bitDepth);
+
+    var latlon = decode_int(hashSouthWest, bitDepth);
+
+    var perLat = latlon.error.latitude * 2;
+    var perLon = latlon.error.longitude * 2;
+
+    var boxSouthWest = decode_bbox_int(hashSouthWest, bitDepth);
+    var boxNorthEast = decode_bbox_int(hashNorthEast, bitDepth);
+
+    var latStep = Math.round((boxNorthEast[0] - boxSouthWest[0])/perLat);
+    var lonStep = Math.round((boxNorthEast[1] - boxSouthWest[1])/perLon);
+
+    var hashList = [];
+
+    for(var lat = 0; lat <= latStep; lat++){
+        for(var lon = 0; lon <= lonStep; lon++){
+            hashList.push(neighbor_int(hashSouthWest,[lat, lon], bitDepth));
+        }
+    }
+
+    return hashList;
+};
+
+var geohash = {
+  'ENCODE_AUTO': ENCODE_AUTO,
+  'encode': encode,
+  'encode_uint64': encode_int, // keeping for backwards compatibility, will deprecate
+  'encode_int': encode_int,
+  'decode': decode,
+  'decode_int': decode_int,
+  'decode_uint64': decode_int, // keeping for backwards compatibility, will deprecate
+  'decode_bbox': decode_bbox,
+  'decode_bbox_uint64': decode_bbox_int, // keeping for backwards compatibility, will deprecate
+  'decode_bbox_int': decode_bbox_int,
+  'neighbor': neighbor,
+  'neighbor_int': neighbor_int,
+  'neighbors': neighbors,
+  'neighbors_int': neighbors_int,
+  'bboxes': bboxes,
+  'bboxes_int': bboxes_int
+};
+
+module.exports = geohash;
+
+},{}],6:[function(require,module,exports){
 module.exports = createLayout;
 
 // Maximum movement of the system at which system should be considered as stable
@@ -9694,7 +10213,7 @@ function createLayout(graph, physicsSimulator) {
   }
 }
 
-},{"ngraph.physics.primitives":6,"ngraph.physics.simulator":11,"ngraph.random":7}],6:[function(require,module,exports){
+},{"ngraph.physics.primitives":7,"ngraph.physics.simulator":12,"ngraph.random":8}],7:[function(require,module,exports){
 module.exports = {
   Body: Body,
   Vector2d: Vector2d
@@ -9713,7 +10232,7 @@ function Vector2d(x, y) {
   this.y = typeof y === 'number' ? y : 0;
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 module.exports = {
   random: random,
   randomIterator: randomIterator
@@ -9800,7 +10319,7 @@ function randomIterator(array, customRandom) {
     };
 }
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 module.exports = {
   ladder: ladder,
   complete: complete,
@@ -10007,7 +10526,7 @@ function noLinks(n) {
   return g;
 }
 
-},{"ngraph.graph":9}],9:[function(require,module,exports){
+},{"ngraph.graph":10}],10:[function(require,module,exports){
 /**
  * @fileOverview Contains definition of the core graph object.
  */
@@ -10428,7 +10947,7 @@ function Link(fromId, toId, data, id) {
     this.id = id;
 }
 
-},{"ngraph.events":10}],10:[function(require,module,exports){
+},{"ngraph.events":11}],11:[function(require,module,exports){
 module.exports = function(subject) {
   validateSubject(subject);
 
@@ -10515,7 +11034,7 @@ function validateSubject(subject) {
   }
 }
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 /**
  * Manages a simulation of physical forces acting on bodies and springs.
  */
@@ -10716,7 +11235,7 @@ function physicsSimulator(settings) {
   }
 };
 
-},{"./lib/dragForce":12,"./lib/eulerIntegrator":13,"./lib/exposeProperties":14,"./lib/spring":15,"./lib/springForce":16,"ngraph.merge":17,"ngraph.quadtreebh":18}],12:[function(require,module,exports){
+},{"./lib/dragForce":13,"./lib/eulerIntegrator":14,"./lib/exposeProperties":15,"./lib/spring":16,"./lib/springForce":17,"ngraph.merge":18,"ngraph.quadtreebh":19}],13:[function(require,module,exports){
 /**
  * Represents drag force, which reduces force value on each step by given
  * coefficient.
@@ -10745,7 +11264,7 @@ module.exports = function (options) {
   return api;
 };
 
-},{"./exposeProperties":14,"ngraph.merge":17}],13:[function(require,module,exports){
+},{"./exposeProperties":15,"ngraph.merge":18}],14:[function(require,module,exports){
 /**
  * Performs forces integration, using given timestep. Uses Euler method to solve
  * differential equation (http://en.wikipedia.org/wiki/Euler_method ).
@@ -10789,7 +11308,7 @@ function integrate(bodies, timeStep) {
   return (tx * tx + ty * ty)/bodies.length;
 }
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 module.exports = exposeProperties;
 
 /**
@@ -10835,7 +11354,7 @@ function augment(source, target, key) {
   }
 }
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 module.exports = Spring;
 
 /**
@@ -10851,7 +11370,7 @@ function Spring(fromBody, toBody, length, coeff, weight) {
     this.weight = typeof weight === 'number' ? weight : 1;
 };
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 /**
  * Represents spring force, which updates forces acting on two bodies, conntected
  * by a spring.
@@ -10903,7 +11422,7 @@ module.exports = function (options) {
   return api;
 }
 
-},{"./exposeProperties":14,"ngraph.merge":17,"ngraph.random":22}],17:[function(require,module,exports){
+},{"./exposeProperties":15,"ngraph.merge":18,"ngraph.random":23}],18:[function(require,module,exports){
 module.exports = merge;
 
 /**
@@ -10936,7 +11455,7 @@ function merge(target, options) {
   return target;
 }
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 /**
  * This is Barnes Hut simulation algorithm. Implementation
  * is adopted to non-recursive solution, since certain browsers
@@ -11210,7 +11729,7 @@ module.exports = function (options) {
 };
 
 
-},{"./insertStack":19,"./isSamePosition":20,"./node":21,"ngraph.random":22}],19:[function(require,module,exports){
+},{"./insertStack":20,"./isSamePosition":21,"./node":22,"ngraph.random":23}],20:[function(require,module,exports){
 module.exports = InsertStack;
 
 /**
@@ -11255,7 +11774,7 @@ function InsertStackElement(node, body) {
     this.body = body; // physical body which needs to be inserted to node
 }
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 module.exports = function isSamePosition(point1, point2) {
     var dx = Math.abs(point1.x - point2.x);
     var dy = Math.abs(point1.y - point2.y);
@@ -11263,7 +11782,7 @@ module.exports = function isSamePosition(point1, point2) {
     return (dx < 1e-8 && dy < 1e-8);
 };
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 /**
  * Internal data structure to represent 2D QuadTree node
  */
@@ -11295,9 +11814,9 @@ module.exports = function Node() {
   this.isInternal = false;
 };
 
-},{}],22:[function(require,module,exports){
-module.exports=require(7)
 },{}],23:[function(require,module,exports){
+module.exports=require(8)
+},{}],24:[function(require,module,exports){
 module.exports = function (graph, layout) {
   var width = window.innerWidth,
       height = window.innerHeight;
