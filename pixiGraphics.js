@@ -25,33 +25,21 @@ module.exports = function (graph, layout) {
     graphGraphics: graphics,
     stage: stage
   };
-}
-var wordMap;
+};
+
+wm = require('./wordmap');
 function drawGraph(graphics) {
   // No magic at all: Iterate over positions array and render nodes/links
-  var width = window.innerWidth;
+  
   var i, x, y, x1, y1;
   
-  if(wordMap) {
     graphics.lineStyle(0);
     graphics.clear();
       
-    var scale = window.innerHeight;
-    for(var wordEntry in wordMap) {
-        x = scale*(wordMap[wordEntry].x-0.5) + width/2;
-        y = scale*wordMap[wordEntry].y;
+    for(var word in wm.wordMap) {
+        positions = wm.wordMapToGraphicsCoordinates(wm.wordMap[word].x, wm.wordMap[word].y);
         graphics.beginFill(0xFFFFFF);
-        graphics.drawRect(x, y, 1, 1);
+        graphics.drawRect(positions.x, positions.y, 1, 1);
         graphics.endFill();
-    };
-  } else {
-        var $ = require('jquery');
-        $.ajax({
-             url:    '/testData.json',
-             success: function(result) {
-                          wordMap = result;
-                      },
-             async:   false
-        });
-  }
+    }
 }

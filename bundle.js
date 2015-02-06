@@ -53,16 +53,15 @@ module.exports = function (graphics) {
       prevX = pos.x; prevY = pos.y;
       isDragging = true;
     };
-
+    wm = require('./wordmap');
     stage.mousemove = function (moveData) {
       var pos = moveData.global;
       var graphPos = getGraphCoordinates(pos.x, pos.y);
-      var hash = geohash.encode(graphPos.x/1000, graphPos.y/1000);
-      text.setText(hash);
+      var word = wm.getWord(graphPos.x, graphPos.y);
+      text.setText(word);
       if (!isDragging) {
         return;
       }
-      var pos = moveData.global;
       var dx = pos.x - prevX;
       var dy = pos.y - prevY;
 
@@ -77,7 +76,7 @@ module.exports = function (graphics) {
   }
 }
 
-},{"./lib/addWheelListener":3,"ngeohash":5}],2:[function(require,module,exports){
+},{"./lib/addWheelListener":3,"./wordmap":25,"ngeohash":5}],2:[function(require,module,exports){
 module.exports.main = function () {
  
   var graph = require('ngraph.generators').grid(40, 40),
@@ -11844,37 +11843,75 @@ module.exports = function (graph, layout) {
     graphGraphics: graphics,
     stage: stage
   };
-}
-var wordMap;
+};
+
+wm = require('./wordmap');
 function drawGraph(graphics) {
   // No magic at all: Iterate over positions array and render nodes/links
-  var width = window.innerWidth;
+  
   var i, x, y, x1, y1;
   
-  if(wordMap) {
     graphics.lineStyle(0);
     graphics.clear();
       
-    var scale = window.innerHeight;
-    for(var wordEntry in wordMap) {
-        x = scale*(wordMap[wordEntry].x-0.5) + width/2;
-        y = scale*wordMap[wordEntry].y;
+    for(var word in wm.wordMap) {
+        positions = wm.wordMapToGraphicsCoordinates(wm.wordMap[word].x, wm.wordMap[word].y);
         graphics.beginFill(0xFFFFFF);
-        graphics.drawRect(x, y, 1, 1);
+        graphics.drawRect(positions.x, positions.y, 1, 1);
         graphics.endFill();
-    };
-  } else {
-        var $ = require('jquery');
+    }
+}
+
+},{"./wordmap":25}],25:[function(require,module,exports){
+module.exports = function () {
+  var geohash = require('ngeohash');
+  var $ = require('jquery');
+        geoHashDictionary = {};
         $.ajax({
              url:    '/testData.json',
              success: function(result) {
                           wordMap = result;
+                          for(var word in wordMap) {
+                            hash = geohash.encode(wordMap[word].x, wordMap[word].y, precision=5);
+                            geoHashDictionary[hash] = word;
+                          }
                       },
              async:   false
         });
+  
+  function graphicsToWordMapCoordinates(x,y) {
+    var scale = window.innerHeight;
+    var width = window.innerWidth;
+    x_out = (x - width/2)/scale + 0.5;
+    y_out = y/scale;
+    return {x: x_out, y: y_out};  
   }
-}
-
-},{"jquery":4}]},{},[2])
+  
+  function wordMapToGraphicsCoordinates(x,y) {
+    var scale = window.innerHeight;
+    var width = window.innerWidth;
+    x_out = scale*(x-0.5) + width/2;
+    y_out = scale*y;
+    return {x: x_out, y: y_out};
+  }
+  
+  function getWord(x, y) {
+    wordMapPositions = graphicsToWordMapCoordinates(x, y);
+    var hash = geohash.encode(wordMapPositions.x, wordMapPositions.y, precision=5);
+    if(hash in geoHashDictionary) {
+      return geoHashDictionary[hash];
+    }
+    return "";
+  }
+  
+  return {
+    wordMap: wordMap,
+    geoHashDictionary: geoHashDictionary,
+    graphicsToWordMapCoordinates: graphicsToWordMapCoordinates,
+    wordMapToGraphicsCoordinates: wordMapToGraphicsCoordinates,
+    getWord: getWord
+  };
+}();
+},{"jquery":4,"ngeohash":5}]},{},[2])
 (2)
 });

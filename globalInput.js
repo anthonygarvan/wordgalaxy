@@ -52,16 +52,15 @@ module.exports = function (graphics) {
       prevX = pos.x; prevY = pos.y;
       isDragging = true;
     };
-
+    wm = require('./wordmap');
     stage.mousemove = function (moveData) {
       var pos = moveData.global;
       var graphPos = getGraphCoordinates(pos.x, pos.y);
-      var hash = geohash.encode(graphPos.x/1000, graphPos.y/1000);
-      text.setText(hash);
+      var word = wm.getWord(graphPos.x, graphPos.y);
+      text.setText(word);
       if (!isDragging) {
         return;
       }
-      var pos = moveData.global;
       var dx = pos.x - prevX;
       var dy = pos.y - prevY;
 
