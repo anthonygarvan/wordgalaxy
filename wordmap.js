@@ -7,8 +7,12 @@ module.exports = function () {
              success: function(result) {
                           wordMap = result;
                           for(var word in wordMap) {
-                            hash = geohash.encode(wordMap[word].x, wordMap[word].y, precision=5);
-                            geoHashDictionary[hash] = word;
+                            hash = geohash.encode(wordMap[word].x, wordMap[word].y, precision=6);
+                            if(hash in geoHashDictionary) {
+                              geoHashDictionary[hash].push(word);
+                            } else {
+                              geoHashDictionary[hash] = [word];  
+                            }
                           }
                       },
              async:   false
@@ -32,9 +36,21 @@ module.exports = function () {
   
   function getWord(x, y) {
     wordMapPositions = graphicsToWordMapCoordinates(x, y);
-    var hash = geohash.encode(wordMapPositions.x, wordMapPositions.y, precision=5);
+    var hash = geohash.encode(wordMapPositions.x, wordMapPositions.y, precision=6);
     if(hash in geoHashDictionary) {
-      return geoHashDictionary[hash];
+      var closestWord = "";
+      var closestDistance = 1000;
+      geoHashDictionary[hash].forEach(function(word, i, arr) {
+        x2 = Math.pow((wordMapPositions.x - wordMap[word].x), 2);
+        y2 = Math.pow((wordMapPositions.y - wordMap[word].y), 2);
+        d = x2 + y2;
+        
+        if(d < closestDistance) {
+          closestDistance = d;
+          closestWord = word;
+        }
+      })
+      return closestWord;
     }
     return "";
   }
