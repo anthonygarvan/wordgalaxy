@@ -41,13 +41,13 @@ module.exports = function (graphics) {
   function addDragNDrop() {
     var stage = graphics.stage;
     stage.setInteractive(true);
-    var text = new PIXI.Text("", {font:"50px Courier", fill:"white"});
+    var text = new PIXI.Text("", {font:"50px Helvetica", fill:"white"});
     text.position.x = 50;
     text.position.y = 50;
     stage.addChild(text);
     
-    var drawing = new PIXI.Graphics();
-    stage.addChild(drawing);
+    var highlighter = new PIXI.Graphics();
+    stage.addChild(highlighter);
     
     var isDragging = false,
         prevX, prevY;
@@ -66,16 +66,16 @@ module.exports = function (graphics) {
       
       if(word) {
         highlightPos = wg.wordGalaxyToGraphicsCoordinates(wg.wordGalaxy[word].x, wg.wordGalaxy[word].y);
-        drawing.visible = true;
-        drawing.scale.x = graphGraphics.scale.x;
-        drawing.scale.y = graphGraphics.scale.y;
-        drawing.position.x = graphGraphics.position.x;
-        drawing.position.y = graphGraphics.position.y;
-        drawing.clear();
-        drawing.beginFill(0xFFFFFF);
-        drawing.drawCircle(highlightPos.x, highlightPos.y, 4);
+        highlighter.visible = true;
+        highlighter.scale.x = graphGraphics.scale.x;
+        highlighter.scale.y = graphGraphics.scale.y;
+        highlighter.position.x = graphGraphics.position.x;
+        highlighter.position.y = graphGraphics.position.y;
+        highlighter.clear();
+        highlighter.beginFill(0xFFFFFF);
+        highlighter.drawCircle(highlightPos.x, highlightPos.y, 2);
       } else {
-        drawing.visible = false;
+        highlighter.visible = false;
       }
       
       if (!isDragging) {
@@ -11837,7 +11837,7 @@ module.exports=require(8)
 },{}],24:[function(require,module,exports){
 module.exports = function (graph, layout) {
   var width = window.innerWidth,
-      height = window.innerHeight;
+      height = window.innerHeight - 50;
 
   var stage = new PIXI.Stage(0x000000, true);
   var renderer = PIXI.autoDetectRenderer(width, height, null, false, true);
@@ -11903,7 +11903,7 @@ module.exports = function () {
         });
   
   function graphicsToWordGalaxyCoordinates(x,y) {
-    var scale = window.innerHeight;
+    var scale = window.innerHeight - 50;
     var width = window.innerWidth;
     x_out = (x - width/2)/scale + 0.5;
     y_out = y/scale;
@@ -11911,7 +11911,7 @@ module.exports = function () {
   }
   
   function wordGalaxyToGraphicsCoordinates(x,y) {
-    var scale = window.innerHeight;
+    var scale = window.innerHeight - 50;
     var width = window.innerWidth;
     x_out = scale*(x-0.5) + width/2;
     y_out = scale*y;

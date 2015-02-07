@@ -1,6 +1,6 @@
 module.exports = function (graph, layout) {
   var width = window.innerWidth,
-      height = window.innerHeight;
+      height = window.innerHeight - 50;
 
   var stage = new PIXI.Stage(0x000000, true);
   var renderer = PIXI.autoDetectRenderer(width, height, null, false, true);

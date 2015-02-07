@@ -19,7 +19,7 @@ module.exports = function () {
         });
   
   function graphicsToWordGalaxyCoordinates(x,y) {
-    var scale = window.innerHeight;
+    var scale = window.innerHeight - 50;
     var width = window.innerWidth;
     x_out = (x - width/2)/scale + 0.5;
     y_out = y/scale;
@@ -27,7 +27,7 @@ module.exports = function () {
   }
   
   function wordGalaxyToGraphicsCoordinates(x,y) {
-    var scale = window.innerHeight;
+    var scale = window.innerHeight - 50;
     var width = window.innerWidth;
     x_out = scale*(x-0.5) + width/2;
     y_out = scale*y;
