@@ -5,7 +5,7 @@ module.exports = function (graph, layout) {
   var stage = new PIXI.Stage(0x000000, true);
   var renderer = PIXI.autoDetectRenderer(width, height, null, false, true);
   renderer.view.style.display = "block";
-  document.body.appendChild(renderer.view);
+  document.getElementById("galaxy").appendChild(renderer.view);
 
   var graphics = new PIXI.Graphics();
   graphics.position.x = 0;

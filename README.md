@@ -11,4 +11,5 @@ For the presentation, I rely on PIXI.js, a game engine which uses WebGL when ava
 
 ### References
 [Barnes-Hut SNE](http://arxiv.org/pdf/1301.3342v2.pdf)
+
 [Efficient Estimation of Word Representations in Vector Space](http://arxiv.org/pdf/1301.3781.pdf)
