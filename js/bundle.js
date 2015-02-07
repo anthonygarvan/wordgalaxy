@@ -65,7 +65,7 @@ module.exports = function (graphics) {
       text.setText(word);
       
       if(word) {
-        highlightPos = wg.wordGalaxyToGraphicsCoordinates(wm.wordMap[word].x, wm.wordMap[word].y);
+        highlightPos = wg.wordGalaxyToGraphicsCoordinates(wg.wordGalaxy[word].x, wg.wordGalaxy[word].y);
         drawing.visible = true;
         drawing.scale.x = graphGraphics.scale.x;
         drawing.scale.y = graphGraphics.scale.y;
@@ -11887,7 +11887,7 @@ module.exports = function () {
   var $ = require('jquery');
         geoHashDictionary = {};
         $.ajax({
-             url:    '/testData.json',
+             url:    '/processing/wordGalaxy.json',
              success: function(result) {
                           wordGalaxy = result;
                           for(var word in wordGalaxy) {

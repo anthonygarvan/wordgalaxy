@@ -3,7 +3,7 @@ module.exports = function () {
   var $ = require('jquery');
         geoHashDictionary = {};
         $.ajax({
-             url:    '/testData.json',
+             url:    '/processing/wordGalaxy.json',
              success: function(result) {
                           wordGalaxy = result;
                           for(var word in wordGalaxy) {
