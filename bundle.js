@@ -41,10 +41,14 @@ module.exports = function (graphics) {
   function addDragNDrop() {
     var stage = graphics.stage;
     stage.setInteractive(true);
-    var text = new PIXI.Text("Geohash here!", {font:"50px Arial", fill:"white"});
+    var text = new PIXI.Text("Geohash here!", {font:"50px Courier", fill:"white"});
     text.position.x = 50;
     text.position.y = 50;
     stage.addChild(text);
+    
+    var drawing = new PIXI.Graphics();
+    stage.addChild(drawing);
+    
     var isDragging = false,
         prevX, prevY;
 
@@ -59,6 +63,21 @@ module.exports = function (graphics) {
       var graphPos = getGraphCoordinates(pos.x, pos.y);
       var word = wm.getWord(graphPos.x, graphPos.y);
       text.setText(word);
+      
+      if(word) {
+        highlightPos = wm.wordMapToGraphicsCoordinates(wm.wordMap[word].x, wm.wordMap[word].y);
+        drawing.visible = true;
+        drawing.scale.x = graphGraphics.scale.x;
+        drawing.scale.y = graphGraphics.scale.y;
+        drawing.position.x = graphGraphics.position.x;
+        drawing.position.y = graphGraphics.position.y;
+        drawing.clear();
+        drawing.beginFill(0xFFFFFF);
+        drawing.drawCircle(highlightPos.x, highlightPos.y, 4);
+      } else {
+        drawing.visible = false;
+      }
+      
       if (!isDragging) {
         return;
       }
