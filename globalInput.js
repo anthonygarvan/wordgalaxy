@@ -40,7 +40,7 @@ module.exports = function (graphics) {
   function addDragNDrop() {
     var stage = graphics.stage;
     stage.setInteractive(true);
-    var text = new PIXI.Text("Geohash here!", {font:"50px Courier", fill:"white"});
+    var text = new PIXI.Text("", {font:"50px Courier", fill:"white"});
     text.position.x = 50;
     text.position.y = 50;
     stage.addChild(text);
@@ -56,15 +56,15 @@ module.exports = function (graphics) {
       prevX = pos.x; prevY = pos.y;
       isDragging = true;
     };
-    wm = require('./wordmap');
+    wg = require('./wordgalaxy');
     stage.mousemove = function (moveData) {
       var pos = moveData.global;
       var graphPos = getGraphCoordinates(pos.x, pos.y);
-      var word = wm.getWord(graphPos.x, graphPos.y);
+      var word = wg.getWord(graphPos.x, graphPos.y);
       text.setText(word);
       
       if(word) {
-        highlightPos = wm.wordMapToGraphicsCoordinates(wm.wordMap[word].x, wm.wordMap[word].y);
+        highlightPos = wg.wordGalaxyToGraphicsCoordinates(wm.wordMap[word].x, wm.wordMap[word].y);
         drawing.visible = true;
         drawing.scale.x = graphGraphics.scale.x;
         drawing.scale.y = graphGraphics.scale.y;

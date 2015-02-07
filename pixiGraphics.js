@@ -27,7 +27,7 @@ module.exports = function (graph, layout) {
   };
 };
 
-wm = require('./wordmap');
+wg = require('./wordgalaxy');
 function drawGraph(graphics) {
   // No magic at all: Iterate over positions array and render nodes/links
   
@@ -36,8 +36,8 @@ function drawGraph(graphics) {
     graphics.lineStyle(0);
     graphics.clear();
       
-    for(var word in wm.wordMap) {
-        positions = wm.wordMapToGraphicsCoordinates(wm.wordMap[word].x, wm.wordMap[word].y);
+    for(var word in wg.wordGalaxy) {
+        positions = wg.wordGalaxyToGraphicsCoordinates(wg.wordGalaxy[word].x, wg.wordGalaxy[word].y);
         graphics.beginFill(0xFFFFFF);
         graphics.drawRect(positions.x, positions.y, 1, 1);
         graphics.endFill();
