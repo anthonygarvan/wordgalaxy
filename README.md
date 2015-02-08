@@ -1,4 +1,4 @@
-## WordGalaxy: A Two Dimensional Thesaurus
+# WordGalaxy: A Map of Engligh Words
 
 This project visualizes a large number (eg., 20,000) of words in two dimensions in such a way that words that are similar in meaning appear closer to one another, and words that are dissimilar are farther away from each other.
 
@@ -9,7 +9,7 @@ implementation of Barnes-Hut t-SNE.
 
 For the presentation, I rely on PIXI.js, a game engine which uses WebGL when available and fails gracefully into canvas rendering. To get a headstart, I launched off [this](https://github.com/anvaka/ngraph) implementation, which is a library for plotting graphs that already had zoom & pan built in.
 
-### References
+## References
 [Barnes-Hut SNE](http://arxiv.org/pdf/1301.3342v2.pdf)
 
 [Efficient Estimation of Word Representations in Vector Space](http://arxiv.org/pdf/1301.3781.pdf)
