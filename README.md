@@ -1,8 +1,8 @@
-# WordGalaxy: A Map of English Words
+# WordGalaxy: An Interactive Map of English
 
 This project visualizes a large number (eg., 20,000) of words in two dimensions in such a way that words that are similar in meaning appear closer to one another, and words that are dissimilar are farther away from each other.
 
-It yields an interactive site where users can explore the space by zooming & panning, all on the front end. 
+It yields an interactive, statically served site where users can explore the space by zooming & panning.
 
 This project cherry picks the latest and greatest technologies in natural language
 processing and web development. To generate the vectors, I rely on [Google's Word2Vec tool](https://code.google.com/p/word2vec/). Specifically, I used some preprocessed vectors run on 200-300 millions words of Wikipedia, code that was written by dhammock a few years ago, see [here](https://github.com/dhammack/Word2VecExample). The vectors are represented in 250 dimensions, so to visualize them they need to be 
