@@ -43,16 +43,18 @@ module.exports = function (graphics) {
   $("#search-form").submit(function(event) {
     event.preventDefault();
     var searchTerm = $("#search-term").val();
-    wg.addTaggedWord(searchTerm);
-    var taggedWords = wg.getTaggedWords();
-    for(var taggedWord in taggedWords) {
-      var taggedText = new PIXI.Text("", {font:"bold 35px Helvetica", fill:"red"});
-      wordPos = wg.wordGalaxyToGraphicsCoordinates(taggedWords[taggedWord].x, taggedWords[taggedWord].y);
-      taggedText.position.x = wordPos.x;
-      taggedText.position.y = wordPos.y;
-      taggedText.setText(taggedWord);
-      graphGraphics.addChild(taggedText);
-    }
+    $("#search-term").val("");
+    var taggedText = new PIXI.Text("", {font:"bold 25px Helvetica", fill:"yellow"});
+    wordPos = wg.wordGalaxyToGraphicsCoordinates(wg.wordGalaxy[searchTerm].x, wg.wordGalaxy[searchTerm].y);
+    taggedText.position.x = wordPos.x + 5;
+    taggedText.position.y = wordPos.y - 30;
+    taggedText.setText(searchTerm);
+    graphGraphics.addChild(taggedText);
+    
+    var taggedPoint = new PIXI.Graphics();
+    taggedPoint.beginFill(0xFFFF00);
+    taggedPoint.drawCircle(wordPos.x, wordPos.y, 6);    
+    graphGraphics.addChild(taggedPoint);
   });
 
   function addDragNDrop() {
