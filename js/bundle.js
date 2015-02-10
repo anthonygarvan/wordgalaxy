@@ -1,9 +1,11 @@
 !function(e){if("object"==typeof exports)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.ngraph=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = function (graphics) {
   var addWheelListener = require('./lib/addWheelListener');
+  var wg = require('./wordgalaxy');
   var geohash = require('ngeohash');
   var graphGraphics = graphics.graphGraphics;
-
+  var $ = require('jquery');
+  
   addWheelListener(graphics.domContainer, function (e) {
     zoom(e.clientX, e.clientY, e.deltaY < 0);
   });
@@ -37,6 +39,21 @@ module.exports = function (graphics) {
     graphGraphics.position.y += (afterTransform.y - beforeTransform.y) * graphGraphics.scale.y;
     graphGraphics.updateTransform();
   }
+  
+  $("#search-form").submit(function(event) {
+    event.preventDefault();
+    var searchTerm = $("#search-term").val();
+    wg.addTaggedWord(searchTerm);
+    var taggedWords = wg.getTaggedWords();
+    for(var taggedWord in taggedWords) {
+      var taggedText = new PIXI.Text("", {font:"bold 35px Helvetica", fill:"red"});
+      wordPos = wg.wordGalaxyToGraphicsCoordinates(taggedWords[taggedWord].x, taggedWords[taggedWord].y);
+      taggedText.position.x = wordPos.x;
+      taggedText.position.y = wordPos.y;
+      taggedText.setText(taggedWord);
+      graphGraphics.addChild(taggedText);
+    }
+  });
 
   function addDragNDrop() {
     var stage = graphics.stage;
@@ -57,7 +74,7 @@ module.exports = function (graphics) {
       prevX = pos.x; prevY = pos.y;
       isDragging = true;
     };
-    wg = require('./wordgalaxy');
+    
     stage.mousemove = function (moveData) {
       var pos = moveData.global;
       var graphPos = getGraphCoordinates(pos.x, pos.y);
@@ -95,7 +112,7 @@ module.exports = function (graphics) {
   }
 }
 
-},{"./lib/addWheelListener":3,"./wordgalaxy":25,"ngeohash":5}],2:[function(require,module,exports){
+},{"./lib/addWheelListener":3,"./wordgalaxy":25,"jquery":4,"ngeohash":5}],2:[function(require,module,exports){
 module.exports.main = function () {
  
   var graph = require('ngraph.generators').grid(40, 40),
@@ -11885,22 +11902,22 @@ function drawGraph(graphics) {
 module.exports = function () {
   var geohash = require('ngeohash');
   var $ = require('jquery');
-        geoHashDictionary = {};
-        $.ajax({
-             url:    window.location.href + '/../processing/wordGalaxy.json',
-             success: function(result) {
-                          wordGalaxy = result;
-                          for(var word in wordGalaxy) {
-                            hash = geohash.encode(wordGalaxy[word].x, wordGalaxy[word].y, precision=6);
-                            if(hash in geoHashDictionary) {
-                              geoHashDictionary[hash].push(word);
-                            } else {
-                              geoHashDictionary[hash] = [word];  
-                            }
-                          }
-                      },
-             async:   false
-        });
+  geoHashDictionary = {};
+  $.ajax({
+       url:    window.location.href + '/../processing/wordGalaxy.json',
+       success: function(result) {
+                    wordGalaxy = result;
+                    for(var word in wordGalaxy) {
+                      hash = geohash.encode(wordGalaxy[word].x, wordGalaxy[word].y, precision=6);
+                      if(hash in geoHashDictionary) {
+                        geoHashDictionary[hash].push(word);
+                      } else {
+                        geoHashDictionary[hash] = [word];  
+                      }
+                    }
+                },
+       async:   false
+  });
   
   function graphicsToWordGalaxyCoordinates(x,y) {
     var scale = window.innerHeight - 50;
@@ -11939,12 +11956,23 @@ module.exports = function () {
     return "";
   }
   
+  var taggedWords = {};
+      taggedWords["test1"] = {"x":0.5, "y":0.5};
+      taggedWords["test2"] = {"x":0.3, "y":0.3};
+      
+  
+  function addTaggedWord(word) {
+    taggedWords[word] = {"x" : Math.random(), "y": Math.random()};
+  }
+  
   return {
     wordGalaxy: wordGalaxy,
     geoHashDictionary: geoHashDictionary,
     graphicsToWordGalaxyCoordinates: graphicsToWordGalaxyCoordinates,
     wordGalaxyToGraphicsCoordinates: wordGalaxyToGraphicsCoordinates,
-    getWord: getWord
+    getWord: getWord,
+    getTaggedWords: function() {return taggedWords;},
+    addTaggedWord: addTaggedWord
   };
 }();
 },{"jquery":4,"ngeohash":5}]},{},[2])

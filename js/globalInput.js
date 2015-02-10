@@ -1,8 +1,10 @@
 module.exports = function (graphics) {
   var addWheelListener = require('./lib/addWheelListener');
+  var wg = require('./wordgalaxy');
   var geohash = require('ngeohash');
   var graphGraphics = graphics.graphGraphics;
-
+  var $ = require('jquery');
+  
   addWheelListener(graphics.domContainer, function (e) {
     zoom(e.clientX, e.clientY, e.deltaY < 0);
   });
@@ -36,6 +38,21 @@ module.exports = function (graphics) {
     graphGraphics.position.y += (afterTransform.y - beforeTransform.y) * graphGraphics.scale.y;
     graphGraphics.updateTransform();
   }
+  
+  $("#search-form").submit(function(event) {
+    event.preventDefault();
+    var searchTerm = $("#search-term").val();
+    wg.addTaggedWord(searchTerm);
+    var taggedWords = wg.getTaggedWords();
+    for(var taggedWord in taggedWords) {
+      var taggedText = new PIXI.Text("", {font:"bold 35px Helvetica", fill:"red"});
+      wordPos = wg.wordGalaxyToGraphicsCoordinates(taggedWords[taggedWord].x, taggedWords[taggedWord].y);
+      taggedText.position.x = wordPos.x;
+      taggedText.position.y = wordPos.y;
+      taggedText.setText(taggedWord);
+      graphGraphics.addChild(taggedText);
+    }
+  });
 
   function addDragNDrop() {
     var stage = graphics.stage;
@@ -56,7 +73,7 @@ module.exports = function (graphics) {
       prevX = pos.x; prevY = pos.y;
       isDragging = true;
     };
-    wg = require('./wordgalaxy');
+    
     stage.mousemove = function (moveData) {
       var pos = moveData.global;
       var graphPos = getGraphCoordinates(pos.x, pos.y);

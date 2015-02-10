@@ -1,22 +1,22 @@
 module.exports = function () {
   var geohash = require('ngeohash');
   var $ = require('jquery');
-        geoHashDictionary = {};
-        $.ajax({
-             url:    window.location.href + '/../processing/wordGalaxy.json',
-             success: function(result) {
-                          wordGalaxy = result;
-                          for(var word in wordGalaxy) {
-                            hash = geohash.encode(wordGalaxy[word].x, wordGalaxy[word].y, precision=6);
-                            if(hash in geoHashDictionary) {
-                              geoHashDictionary[hash].push(word);
-                            } else {
-                              geoHashDictionary[hash] = [word];  
-                            }
-                          }
-                      },
-             async:   false
-        });
+  geoHashDictionary = {};
+  $.ajax({
+       url:    window.location.href + '/../processing/wordGalaxy.json',
+       success: function(result) {
+                    wordGalaxy = result;
+                    for(var word in wordGalaxy) {
+                      hash = geohash.encode(wordGalaxy[word].x, wordGalaxy[word].y, precision=6);
+                      if(hash in geoHashDictionary) {
+                        geoHashDictionary[hash].push(word);
+                      } else {
+                        geoHashDictionary[hash] = [word];  
+                      }
+                    }
+                },
+       async:   false
+  });
   
   function graphicsToWordGalaxyCoordinates(x,y) {
     var scale = window.innerHeight - 50;
@@ -55,11 +55,22 @@ module.exports = function () {
     return "";
   }
   
+  var taggedWords = {};
+      taggedWords["test1"] = {"x":0.5, "y":0.5};
+      taggedWords["test2"] = {"x":0.3, "y":0.3};
+      
+  
+  function addTaggedWord(word) {
+    taggedWords[word] = {"x" : Math.random(), "y": Math.random()};
+  }
+  
   return {
     wordGalaxy: wordGalaxy,
     geoHashDictionary: geoHashDictionary,
     graphicsToWordGalaxyCoordinates: graphicsToWordGalaxyCoordinates,
     wordGalaxyToGraphicsCoordinates: wordGalaxyToGraphicsCoordinates,
-    getWord: getWord
+    getWord: getWord,
+    getTaggedWords: function() {return taggedWords;},
+    addTaggedWord: addTaggedWord
   };
 }();
